@@ -1,30 +1,37 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
-using System.Drawing;
-using System.IO;
 using System.Linq;
 using System.Media;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace Profili {
 	public partial class Editor : Form {
+
 		public Editor(string name = "") {
 			InitializeComponent();
 			textName.Text = name;
 			textName.ReadOnly = textName.Text != "";
 			lDel.Visible = textName.ReadOnly;
 			if (textName.Text != "") {
-				listProg.Items.AddRange(Form1.GetItems(textName.Text));
+				listProg.Items.AddRange(Back.GetItems(textName.Text));
 			}
+
+			lprogr.Items.AddRange(Back.INSTALLATI.Select(r => r.Key).ToArray());
+
 		}
 
 		private void save_Click(object sender, EventArgs e) {
-			Form1.SetItem(textName.Text, listProg.Items.OfType<string>().ToArray());
-			Close();
+			bool close = true;
+			Back.SetItem(textName.Text,
+			listProg.Items.OfType<string>().ToArray(),
+			() => {
+				if (!textName.ReadOnly)
+					close = MessageBox.Show("Profile already exists. overwrite?", "OVERWRITE PROFILE?", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1)
+					== DialogResult.Yes;
+				return close;
+			});
+			if (close)
+				Close();
 		}
 
 		private void listProg_SelectedIndexChanged(object sender, EventArgs e) {
@@ -59,7 +66,7 @@ namespace Profili {
 			if ((MessageBox.Show("Do you really want to delete the profile?", "DELETE THE PROFILE?",
    MessageBoxButtons.YesNo, MessageBoxIcon.Question,
    MessageBoxDefaultButton.Button1) == System.Windows.Forms.DialogResult.Yes)) {
-				Form1.Dels(textName.Text);
+				Back.Dels(textName.Text);
 				Close();
 			}
 		}
@@ -74,7 +81,7 @@ namespace Profili {
 		}
 		private void Editor_KeyDown(object sender, KeyEventArgs e) {
 			if (e.KeyCode == Keys.Escape) {
-				if (txtAdd.Text != string.Empty)
+				if (txtAdd.Text != string.Empty && textName.ReadOnly)
 					if ((MessageBox.Show("Close out without saving?", "CLOSE OUT WITHOUT SAVING?",
 		   MessageBoxButtons.YesNo, MessageBoxIcon.Question,
 		   MessageBoxDefaultButton.Button1) != System.Windows.Forms.DialogResult.Yes))
@@ -84,20 +91,36 @@ namespace Profili {
 		}
 
 		private void opnefile_Click(object sender, EventArgs e) {
-			if (txtAdd.Text == string.Empty)
-				using (OpenFileDialog openFileDialog = new OpenFileDialog()) {
-					openFileDialog.InitialDirectory = "c:\\";
-					openFileDialog.Filter = "All files (*.*)|*.*";
-					openFileDialog.RestoreDirectory = true;
-
-					if (openFileDialog.ShowDialog() == DialogResult.OK) {
-						txtAdd.Text = (openFileDialog.FileName);
-					}
-				}
+			if (txtAdd.Text == string.Empty && !lprogr.Visible)
+				apriprogramma();
 		}
 
 		private void txtAdd_TextChanged(object sender, EventArgs e) {
 			save.Enabled = textName.Text != string.Empty && listProg.Items.Count > 0;
+		}
+
+		private void lchoicceprg_Click(object sender, EventArgs e) {
+			if (txtAdd.Text == string.Empty)
+				lprogr.Visible = !lprogr.Visible;
+		}
+
+		private void comboBox1_SelectedIndexChanged(object sender, EventArgs e) {
+			if (lprogr.SelectedIndex != -1) {
+				apriprogramma(Back.INSTALLATI[lprogr.SelectedItem.ToString()]);
+				lprogr.SelectedIndex = -1;
+				lprogr.Visible = false;
+			}
+		}
+
+		private void apriprogramma(string initFold = "c:\\") {
+			using (OpenFileDialog openFileDialog = new OpenFileDialog()) {
+				openFileDialog.InitialDirectory = initFold;
+				openFileDialog.Filter = "All files (*.*)|*.*";
+
+				if (openFileDialog.ShowDialog() == DialogResult.OK) {
+					txtAdd.Text = (openFileDialog.FileName);
+				}
+			}
 		}
 	}
 }
